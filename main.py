@@ -91,7 +91,6 @@ class Entity:
                         padres[nx][ny] = (x, y)
 
             if lista_cerrada[-1] == destino:
-                print("Llegué!")
                 break
 
             menor = min(map(min, F))
@@ -300,8 +299,6 @@ class Game:
             self.jerry_ai.render(self.window, self.map)
 
             if time <= 0 and cont == 0:
-                print("TOM: (" + str(self.tom_ai.x) + ", " + str(self.tom_ai.y) + ")")
-                print("JERRY: (" + str(self.jerry_ai.x) + ", " + str(self.jerry_ai.y) + ")")
                 t_pos = (self.tom_ai.x, self.tom_ai.y)
                 j_pos = (self.jerry_ai.x, self.jerry_ai.y)
                 self.tom_ai.y, self.tom_ai.x = self.tom_ai.algoritmo(self.map, t_pos, j_pos, (-1, -1), self.tom_ai)[1]
