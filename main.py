@@ -140,7 +140,7 @@ class Tom(Entity):
     def heuristica(m, pos, jerry_end, objetivo_peligro):
         heuristica = abs(pos[0] - jerry_end[0]) + abs(pos[1] - jerry_end[1])
         if m.vals[pos[0]][pos[1]] == 8:
-            heuristica += 50
+            heuristica += 1
         return heuristica
 
 
@@ -153,7 +153,7 @@ class Jerry(Entity):
         heuristica = abs(pos[0] - jerry_end[0]) + abs(pos[1] - jerry_end[1])
         if m.vals[pos[0]][pos[1]] == 8:
             heuristica += 100
-        if abs(pos[0] - objetivo_peligro[0]) + abs(pos[1] - objetivo_peligro[1]) <= 3:
+        if abs(pos[0] - objetivo_peligro[0]) + abs(pos[1] - objetivo_peligro[1]) <= 2:
             heuristica += 200
         return heuristica
 
@@ -288,6 +288,8 @@ class Game:
                 if self.map.vals[i][j] == JERRY_END:
                     j_end = [j, i]
 
+        time = 2000
+        cont = 0
         # self.tom_ai.algoritmo(self.map, t_init, j_init, (-1, -1), self.tom_ai)
         # self.jerry_ai.algoritmo(self.map, j_init, j_end, t_init, self.jerry_ai)
         # Now actually run the game
@@ -301,14 +303,25 @@ class Game:
             self.tom_ai.render(self.window, self.map)
             self.jerry_ai.render(self.window, self.map)
 
-            if current_frame % 25 == 0:
+            if time <= 0 and cont == 0:
                 print("TOM: (" + str(self.tom_ai.x) + ", " + str(self.tom_ai.y) + ")")
                 print("JERRY: (" + str(self.jerry_ai.x) + ", " + str(self.jerry_ai.y) + ")")
                 t_pos = (self.tom_ai.x, self.tom_ai.y)
                 j_pos = (self.jerry_ai.x, self.jerry_ai.y)
-                self.tom_ai.x, self.tom_ai.y = self.tom_ai.algoritmo(self.map, t_pos, j_pos, (-1, -1), self.tom_ai)[1]
-                self.jerry_ai.x, self.jerry_ai.y = self.jerry_ai.algoritmo(self.map, j_pos, j_end, t_pos, self.jerry_ai)[1]
+                self.tom_ai.y, self.tom_ai.x = self.tom_ai.algoritmo(self.map, t_pos, j_pos, (-1, -1), self.tom_ai)[1]
+                time = 2000
+                cont = 1
 
+            if time <= 0 and cont == 1:
+                t_pos = (self.tom_ai.x, self.tom_ai.y)
+                j_pos = (self.jerry_ai.x, self.jerry_ai.y)
+                self.jerry_ai.y, self.jerry_ai.x = self.jerry_ai.algoritmo(self.map, j_pos, j_end, t_pos, self.jerry_ai)[1]
+                time = 2000
+                cont = 0
+
+            time -= 1
+
+            
             event_handler()
             pygame.display.update()
         # --------------------------
