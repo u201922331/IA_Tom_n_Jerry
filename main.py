@@ -61,7 +61,7 @@ class Entity:
             (x < 7) and \
             (y >= 0) and \
             (y < 10) and \
-            (m.vals[x][y] != 4) and \
+            (m.vals[x][y] != 4 and m.vals[x][y] != 5 and m.vals[x][y] != 6 and m.vals[x][y] != 7) and \
             ((x, y) not in lista_cerrada)
 
     def A_estrella(self, m, init, destino, objetivo_peligro, entity):
@@ -73,7 +73,6 @@ class Entity:
         while True:
             block = False
             x, y = lista_cerrada[-1]
-            # print(lista_cerrada)
 
             for i in range(4):
                 nx = x + self.dx[i]
@@ -116,8 +115,6 @@ class Entity:
         x, y = _destino
         block = False
 
-        # print(padres, '\n', destino, '\n', _destino)
-
         while not block:
             for i in range(m.height):
                 for j in range(m.width):
@@ -129,7 +126,6 @@ class Entity:
 
         recorrido.reverse()
         return recorrido
-    # ????????????????????????????????????????????
 
 
 class Tom(Entity):
@@ -139,7 +135,7 @@ class Tom(Entity):
     @staticmethod
     def heuristica(m, pos, jerry_end, objetivo_peligro):
         heuristica = abs(pos[0] - jerry_end[0]) + abs(pos[1] - jerry_end[1])
-        if m.vals[pos[0]][pos[1]] == 8:
+        if m.vals[pos[0]][pos[1]] == 8 or m.vals[pos[0]][pos[1]] == 9 or m.vals[pos[0]][pos[1]] == 10:
             heuristica += 1
         return heuristica
 
@@ -151,7 +147,7 @@ class Jerry(Entity):
     @staticmethod
     def heuristica(m, pos, jerry_end, objetivo_peligro):
         heuristica = abs(pos[0] - jerry_end[0]) + abs(pos[1] - jerry_end[1])
-        if m.vals[pos[0]][pos[1]] == 8:
+        if m.vals[pos[0]][pos[1]] == 8 or m.vals[pos[0]][pos[1]] == 9 or m.vals[pos[0]][pos[1]] == 10:
             heuristica += 100
         if abs(pos[0] - objetivo_peligro[0]) + abs(pos[1] - objetivo_peligro[1]) <= 2:
             heuristica += 200
@@ -249,7 +245,7 @@ class Game:
         self.window = pygame.display.set_mode(wnd_resolution)
         self.game_over = False
         self.jerry_wins = False
-        self.map = Map(map3)
+        self.map = Map(map1)
 
         selected = self.map.vals
         for i in range(len(selected)):
