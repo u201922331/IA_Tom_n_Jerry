@@ -33,31 +33,126 @@ C_TR1 = (168, 94, 34)
 C_TR2 = (237, 36, 0)
 
 
-class Tom:
-    def __init__(self, x: int, y: int):
+# ########################
+# # All entities go here #
+# ########################
+class Entity:
+    def __init__(self, x: int, y: int, sprite_path: str, w, m):
+        print("INIT POS: ", x, ", ", y)
         self.x, self.y = x, y
-        self.icon = pygame.image.load('resources/tom.jpg')
+        self.sprite = pygame.image.load(sprite_path)
+        self.sprite = pygame.transform.scale(self.sprite, (w.get_width() // m.width, w.get_height() // m.height))
 
-    def algoritmo(self):
-        # Inserte algoritmo aquí
-        pass
+        self.dx = [1, -1, 0,  0]
+        self.dy = [0,  0, 1, -1]
 
-    def draw(self, window):
+    def render(self, window, m):
+        scaled_pos = (
+            self.x * window.get_width() // m.width,
+            self.y * window.get_height() // m.height
+        )
 
-        window.blit(self.icon, (self.x, self.y))
+        window.blit(self.sprite, scaled_pos)
+
+    # ????????????????????????????????????????????
+    @staticmethod
+    def valid(x: int, y: int, lista_cerrada, m):
+        return \
+            (x >= 0) and \
+            (x < 7) and \
+            (y >= 0) and \
+            (y < 10) and \
+            (m.vals[x][y] != 4) and \
+            ((x, y) not in lista_cerrada)
+
+    def A_estrella(self, m, init, jerry_end, objetivo_peligro, entity):
+        lista_cerrada = [init]
+        padres = [[0 for _ in range(m.width)] for _ in range(m.height)]
+        F = [[1000 for _ in range(m.width)] for _ in range(m.height)]
+        G = [[0 for _ in range(m.width)] for _ in range(m.height)]
+
+        while True:
+            block = False
+            x, y = lista_cerrada[-1]
+
+            for i in range(4):
+                nx = x + self.dx[i]
+                ny = y + self.dy[i]
+
+                if self.valid(nx, ny, lista_cerrada, m):
+                    if (x, y) == init:
+                        F[nx][ny] = 5 + entity.heuristica(m, [nx, ny], jerry_end, objetivo_peligro)
+                        padres[nx][ny] = (x, y)
+                    elif (nx, ny) == jerry_end:
+                        lista_cerrada.append((nx, ny))
+                        padres[nx][ny] = (x, y)
+                    else:
+                        G[nx][ny] = G[x][y] + 5
+                        F[nx][ny] = G[nx][ny] + entity.heuristica(m, [nx, ny], jerry_end, objetivo_peligro)
+                        padres[nx][ny] = (x, y)
+
+            if lista_cerrada[-1] == jerry_end:
+                break
+
+            menor = min(map(min, F))
+            # print(F, menor)
+            for i in range(m.height):
+                for j in range(m.width):
+                    if menor == F[i][j] and (i, j) not in lista_cerrada and not block:
+                        lista_cerrada.append((i, j))
+                        F[i][j] = 1000
+                        block = True
+
+        return padres
+
+    def algoritmo(self, m, init, jerry_end, objetivo_peligro, entity):
+        _inicio = [init[1], init[0]]; print(_inicio)
+        _destino = [jerry_end[1], jerry_end[0]]; print(_destino)
+        _objetivo_peligro = [objetivo_peligro[1], objetivo_peligro[0]]; print(_objetivo_peligro)
+
+        padres = self.A_estrella(m, _inicio, _destino, _objetivo_peligro, entity)
+        recorrido = [jerry_end]
+        x, y = jerry_end
+        block = False
+
+        while not block:
+            for i in range(m.height):
+                for j in range(m.width):
+                    if (i, j) == padres[x][y]:
+                        recorrido.append((i, j))
+                        if (i, j) == init:
+                            block = True
+                        x, y = i, j
+
+        recorrido.reverse()
+        return recorrido
+    # ????????????????????????????????????????????
 
 
-class Jerry:
-    def __init__(self, x: int, y: int):
-        self.x, self.y = x, y
-        self.icon = pygame.image.load('resources/jerry.jpg')
+class Tom(Entity):
+    def __init__(self, x: int, y: int, w, m):
+        super().__init__(x, y, 'resources/tom.jpg', w, m)
 
-    def algoritmo(self):
-        # Inserte algoritmo aquí
-        pass
+    @staticmethod
+    def heuristica(m, pos, jerry_end, objetivo_peligro):
+        heuristica = abs(pos[0] - jerry_end[0]) + abs(pos[1] - jerry_end[1])
+        if m.vals[pos[0]][pos[1]] == 8:
+            heuristica += 50
+        return heuristica
 
-    def draw(self, window):
-        window.blit(self.icon, (self.x, self.y))
+
+class Jerry(Entity):
+    def __init__(self, x: int, y: int, w, m):
+        super().__init__(x, y, 'resources/jerry.jpg', w, m)
+
+    @staticmethod
+    def heuristica(m, pos, jerry_end, objetivo_peligro):
+        heuristica = abs(pos[0] - jerry_end[0]) + abs(pos[1] - jerry_end[1])
+        if m.vals[pos[0]][pos[1]] == 8:
+            heuristica += 100
+        if abs(pos[0] - objetivo_peligro[0]) + abs(pos[1] - objetivo_peligro[1]) <= 3:
+            heuristica += 200
+        return heuristica
 
 
 """
@@ -73,13 +168,28 @@ class Tile:
 """
 
 
+# ########################
+# # Map class definition #
+# ########################
 class Map:
     def __init__(self, tiles_vals: list):
         self.vals = tiles_vals
         self.width = len(self.vals[0])
         self.height = len(self.vals)
 
-    def draw(self, window):
+        # Validate the map
+        ti_count, ji_count, je_count = 0, 0, 0
+        for row in self.vals:
+            for column in row:
+                if column == TOM_INIT:
+                    ti_count += 1
+                elif column == JERRY_INIT:
+                    ji_count += 1
+                elif column == JERRY_END:
+                    je_count += 1
+        assert ti_count == 1 and ji_count == 1 and je_count == 1
+
+    def render(self, window):
         scr_w = window.get_width() // self.width
         scr_h = window.get_height() // self.height
 
@@ -102,8 +212,13 @@ class Map:
                 pygame.draw.rect(window, color, (x * scr_w, y * scr_h, scr_w, scr_h))
 
 
+# ##############
+# # CORE class #
+# ##############
 class Game:
     def __init__(self, wnd_resolution: tuple):
+        pygame.init()
+
         map1 = [[3,  0, 7, 0, 6, 6, 0,  9,  0, 2],
                 [8,  0, 7, 0, 0, 0, 0,  0,  0, 0],
                 [0, 10, 7, 0, 5, 5, 5, 10, 10, 9],
@@ -120,39 +235,65 @@ class Game:
                 [5, 0,  7, 0, 0, 0, 7, 0,  9, 0],
                 [4, 0,  7, 7, 7, 7, 7, 0,  0, 1]]
 
-        self.resol = wnd_resolution
-        self.game_over = False
-        self.board = Map(map2)
+        map3 = [[3, 0, 4, 0, 4, 4, 0, 8, 0, 2],
+                [8, 0, 4, 0, 0, 0, 0, 0, 0, 0],
+                [0, 8, 4, 0, 4, 4, 4, 8, 8, 8],
+                [8, 0, 4, 0, 0, 0, 0, 0, 0, 0],
+                [0, 8, 4, 4, 4, 4, 4, 0, 0, 4],
+                [0, 0, 4, 4, 4, 4, 4, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 8, 1]]
 
-        self.tom_ai = Tom(0, 0)
-        self.jerry_ai = Jerry(20, 40)
+        self.window = pygame.display.set_mode(wnd_resolution)
+        self.game_over = False
+        self.map = Map(map3)
+
+        selected = self.map.vals
+        for i in range(len(selected)):
+            for j in range(len(selected[0])):
+                if selected[i][j] == 3:
+                    self.tom_ai = Tom(j, i, self.window, self.map)
+                if selected[i][j] == 1:
+                    self.jerry_ai = Jerry(j, i, self.window, self.map)
+                if selected[i][j] == 2:
+                    self.ratonera = (j, i)
 
     def run(self):
-        # Initialize
-        # -----------
-        pygame.init()
-        window = pygame.display.set_mode(self.resol)
-        pygame.display.set_caption("Tom & Jerry in...")
-        # pygame.display.set_icon(pygame.image.load("resources/icon.png"))
-        my_font = pygame.font.Font(None, 20)
-        # -----------
-
-        # Now actually run the game
-        # --------------------------
-        while not self.game_over:
-            window.fill((0, 0, 0))
-            self.board.draw(window)
-            self.tom_ai.draw(window)
-            # self.jerry_ai.draw(window)
-
+        def event_handler():
             for event in pygame.event.get():
+                # Main exit event
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     exit()
+                # Keyboard events
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         exit()
 
+        # Initialize
+        # -----------
+        pygame.display.set_caption("Tom & Jerry in...")
+        # pygame.display.set_icon(pygame.image.load("resources/icon.png"))
+        my_font = pygame.font.Font(None, 20)
+        # -----------
+        t_init = [self.tom_ai.x, self.tom_ai.y]
+        j_init = [self.jerry_ai.x, self.jerry_ai.y]
+        j_end = [0, 0]
+        for i in range(self.map.height):
+            for j in range(self.map.width):
+                if self.map.vals[i][j] == JERRY_END:
+                    j_end = [j, i]
+
+        self.tom_ai.algoritmo(self.map, t_init, j_init, (-1, -1), self.tom_ai)
+        # self.jerry_ai.algoritmo(self.map, j_init, j_end, t_init, self.jerry_ai)
+        # Now actually run the game
+        # --------------------------
+        while not self.game_over:
+            self.window.fill((0, 0, 0))
+            self.map.render(self.window)
+            self.tom_ai.render(self.window, self.map)
+            self.jerry_ai.render(self.window, self.map)
+
+            event_handler()
             pygame.display.update()
         # --------------------------
 
