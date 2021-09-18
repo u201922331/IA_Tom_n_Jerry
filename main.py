@@ -38,7 +38,6 @@ C_TR2 = (237, 36, 0)
 # ########################
 class Entity:
     def __init__(self, x: int, y: int, sprite_path: str, w, m):
-        print("INIT POS: ", x, ", ", y)
         self.x, self.y = x, y
         self.sprite = pygame.image.load(sprite_path)
         self.sprite = pygame.transform.scale(self.sprite, (w.get_width() // m.width, w.get_height() // m.height))
@@ -65,7 +64,7 @@ class Entity:
             (m.vals[x][y] != 4) and \
             ((x, y) not in lista_cerrada)
 
-    def A_estrella(self, m, init, jerry_end, objetivo_peligro, entity):
+    def A_estrella(self, m, init, destino, objetivo_peligro, entity):
         lista_cerrada = [init]
         padres = [[0 for _ in range(m.width)] for _ in range(m.height)]
         F = [[1000 for _ in range(m.width)] for _ in range(m.height)]
@@ -74,6 +73,7 @@ class Entity:
         while True:
             block = False
             x, y = lista_cerrada[-1]
+            # print(lista_cerrada)
 
             for i in range(4):
                 nx = x + self.dx[i]
@@ -81,17 +81,17 @@ class Entity:
 
                 if self.valid(nx, ny, lista_cerrada, m):
                     if (x, y) == init:
-                        F[nx][ny] = 5 + entity.heuristica(m, [nx, ny], jerry_end, objetivo_peligro)
+                        F[nx][ny] = 5 + entity.heuristica(m, [nx, ny], destino, objetivo_peligro)
                         padres[nx][ny] = (x, y)
-                    elif (nx, ny) == jerry_end:
+                    elif (nx, ny) == destino:
                         lista_cerrada.append((nx, ny))
                         padres[nx][ny] = (x, y)
                     else:
                         G[nx][ny] = G[x][y] + 5
-                        F[nx][ny] = G[nx][ny] + entity.heuristica(m, [nx, ny], jerry_end, objetivo_peligro)
+                        F[nx][ny] = G[nx][ny] + entity.heuristica(m, [nx, ny], destino, objetivo_peligro)
                         padres[nx][ny] = (x, y)
 
-            if lista_cerrada[-1] == jerry_end:
+            if lista_cerrada[-1] == destino:
                 break
 
             menor = min(map(min, F))
@@ -105,22 +105,24 @@ class Entity:
 
         return padres
 
-    def algoritmo(self, m, init, jerry_end, objetivo_peligro, entity):
-        _inicio = [init[1], init[0]]; print(_inicio)
-        _destino = [jerry_end[1], jerry_end[0]]; print(_destino)
-        _objetivo_peligro = [objetivo_peligro[1], objetivo_peligro[0]]; print(_objetivo_peligro)
+    def algoritmo(self, m, init, destino, objetivo_peligro, entity):
+        _inicio = (init[1], init[0])
+        _destino = (destino[1], destino[0])
+        _objetivo_peligro = (objetivo_peligro[1], objetivo_peligro[0])
 
         padres = self.A_estrella(m, _inicio, _destino, _objetivo_peligro, entity)
-        recorrido = [jerry_end]
-        x, y = jerry_end
+        recorrido = [_destino]
+        x, y = _destino
         block = False
+
+        # print(padres, '\n', destino, '\n', _destino)
 
         while not block:
             for i in range(m.height):
                 for j in range(m.width):
                     if (i, j) == padres[x][y]:
                         recorrido.append((i, j))
-                        if (i, j) == init:
+                        if (i, j) == _inicio:
                             block = True
                         x, y = i, j
 
@@ -283,15 +285,18 @@ class Game:
                 if self.map.vals[i][j] == JERRY_END:
                     j_end = [j, i]
 
-        self.tom_ai.algoritmo(self.map, t_init, j_init, (-1, -1), self.tom_ai)
+        # self.tom_ai.algoritmo(self.map, t_init, j_init, (-1, -1), self.tom_ai)
         # self.jerry_ai.algoritmo(self.map, j_init, j_end, t_init, self.jerry_ai)
         # Now actually run the game
         # --------------------------
         while not self.game_over:
             self.window.fill((0, 0, 0))
+            
             self.map.render(self.window)
             self.tom_ai.render(self.window, self.map)
             self.jerry_ai.render(self.window, self.map)
+            
+            
 
             event_handler()
             pygame.display.update()
