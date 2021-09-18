@@ -92,6 +92,7 @@ class Entity:
                         padres[nx][ny] = (x, y)
 
             if lista_cerrada[-1] == destino:
+                print("Llegué!")
                 break
 
             menor = min(map(min, F))
@@ -247,6 +248,7 @@ class Game:
 
         self.window = pygame.display.set_mode(wnd_resolution)
         self.game_over = False
+        self.jerry_wins = False
         self.map = Map(map3)
 
         selected = self.map.vals
@@ -276,6 +278,7 @@ class Game:
         pygame.display.set_caption("Tom & Jerry in...")
         # pygame.display.set_icon(pygame.image.load("resources/icon.png"))
         my_font = pygame.font.Font(None, 20)
+        frame = 0
         # -----------
         t_init = [self.tom_ai.x, self.tom_ai.y]
         j_init = [self.jerry_ai.x, self.jerry_ai.y]
@@ -289,14 +292,22 @@ class Game:
         # self.jerry_ai.algoritmo(self.map, j_init, j_end, t_init, self.jerry_ai)
         # Now actually run the game
         # --------------------------
+
         while not self.game_over:
+            current_frame = pygame.time.get_ticks()
             self.window.fill((0, 0, 0))
-            
+
             self.map.render(self.window)
             self.tom_ai.render(self.window, self.map)
             self.jerry_ai.render(self.window, self.map)
-            
-            
+
+            if current_frame % 25 == 0:
+                print("TOM: (" + str(self.tom_ai.x) + ", " + str(self.tom_ai.y) + ")")
+                print("JERRY: (" + str(self.jerry_ai.x) + ", " + str(self.jerry_ai.y) + ")")
+                t_pos = (self.tom_ai.x, self.tom_ai.y)
+                j_pos = (self.jerry_ai.x, self.jerry_ai.y)
+                self.tom_ai.x, self.tom_ai.y = self.tom_ai.algoritmo(self.map, t_pos, j_pos, (-1, -1), self.tom_ai)[1]
+                self.jerry_ai.x, self.jerry_ai.y = self.jerry_ai.algoritmo(self.map, j_pos, j_end, t_pos, self.jerry_ai)[1]
 
             event_handler()
             pygame.display.update()
