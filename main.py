@@ -42,8 +42,8 @@ class Entity:
         self.sprite = pygame.image.load(sprite_path)
         self.sprite = pygame.transform.scale(self.sprite, (w.get_width() // m.width, w.get_height() // m.height))
 
-        self.dx = [1, -1, 0,  0]
-        self.dy = [0,  0, 1, -1]
+        self.dx = [1, -1, 0, 0]
+        self.dy = [0, 0, 1, -1]
 
     def render(self, window, m):
         scaled_pos = (
@@ -53,7 +53,9 @@ class Entity:
 
         window.blit(self.sprite, scaled_pos)
 
-    # ????????????????????????????????????????????
+    def get_pos(self):
+        return tuple((self.x, self.y))
+
     @staticmethod
     def valid(x: int, y: int, lista_cerrada, m):
         return \
@@ -129,7 +131,7 @@ class Entity:
 
 class Tom(Entity):
     def __init__(self, x: int, y: int, w, m):
-        super().__init__(x, y, 'resources/tom.jpg', w, m)
+        super().__init__(x, y, 'resources/tom.png', w, m)
 
     @staticmethod
     def heuristica(m, pos, jerry_end, objetivo_peligro):
@@ -141,7 +143,7 @@ class Tom(Entity):
 
 class Jerry(Entity):
     def __init__(self, x: int, y: int, w, m):
-        super().__init__(x, y, 'resources/jerry.jpg', w, m)
+        super().__init__(x, y, 'resources/jerry.png', w, m)
 
     @staticmethod
     def heuristica(m, pos, jerry_end, objetivo_peligro):
@@ -151,19 +153,6 @@ class Jerry(Entity):
         if abs(pos[0] - objetivo_peligro[0]) + abs(pos[1] - objetivo_peligro[1]) <= 2:
             heuristica += 200
         return heuristica
-
-
-"""
-class Tile:
-    def __init__(self, tile_type):
-        self.type = tile_type
-
-        self.delay = \
-            0 if tile_type == (FREE or JERRY_INIT or JERRY_END or TOM_INIT) else \
-            1 if tile_type == TRAP0 else \
-            2 if tile_type == TRAP1 else \
-            3 if tile_type == TRAP2 else INF
-"""
 
 
 # ########################
@@ -177,6 +166,7 @@ class Map:
 
         # Validate the map
         ti_count, ji_count, je_count = 0, 0, 0
+        i, j = 0, 0
         for row in self.vals:
             for column in row:
                 if column == TOM_INIT:
@@ -185,6 +175,9 @@ class Map:
                     ji_count += 1
                 elif column == JERRY_END:
                     je_count += 1
+                    self.j_end = (j, i)
+                j += 1
+            i += 1
         assert ti_count == 1 and ji_count == 1 and je_count == 1
 
     def render(self, window):
@@ -225,13 +218,13 @@ class Game:
                 [0,  0, 4, 5, 5, 5, 4,  0,  0, 0],
                 [0,  0, 0, 0, 0, 0, 0,  0,  9, 1]]
 
-        map2 = [[3,  0, 8, 6, 6, 6, 4, 9,  0, 2],
-                [0, 10, 0, 9, 0, 0, 0, 8,  0, 0],
-                [4,  0, 7, 0, 5, 0, 7, 0,  0, 9],
-                [5, 0,  7, 0, 5, 0, 7, 0, 10, 4],
-                [5, 0,  0, 0, 5, 0, 0, 0,  0, 0],
-                [5, 0,  7, 0, 0, 0, 7, 0,  9, 0],
-                [4, 0,  7, 7, 7, 7, 7, 0,  0, 1]]
+        map2 = [[3, 0, 8, 6, 6, 6, 4, 9, 0, 2],
+                [0, 10, 0, 9, 0, 0, 0, 8, 0, 0],
+                [4, 0, 7, 0, 5, 0, 7, 0,  0, 9],
+                [5, 0, 7, 0, 5, 0, 7, 0, 10, 4],
+                [5, 0, 0, 0, 5, 0, 0, 0,  0, 0],
+                [5, 0, 7, 0, 0, 0, 7, 0,  9, 0],
+                [4, 0, 7, 7, 7, 7, 7, 0,  0, 1]]
 
         map3 = [[3, 0, 4, 0, 4, 4, 0, 8, 0, 2],
                 [8, 0, 4, 0, 0, 0, 0, 0, 0, 0],
@@ -244,7 +237,7 @@ class Game:
         self.window = pygame.display.set_mode(wnd_resolution)
         self.game_over = False
         self.jerry_wins = False
-        self.map = Map(map1)
+        self.map = Map(map2)
 
         selected = self.map.vals
         for i in range(len(selected)):
@@ -272,11 +265,9 @@ class Game:
         # -----------
         pygame.display.set_caption("Tom & Jerry in...")
         # pygame.display.set_icon(pygame.image.load("resources/icon.png"))
-        my_font = pygame.font.Font(None, 20)
+        my_font = pygame.font.Font(None, 30)
         frame = 0
         # -----------
-        t_init = [self.tom_ai.x, self.tom_ai.y]
-        j_init = [self.jerry_ai.x, self.jerry_ai.y]
         j_end = [0, 0]
         for i in range(self.map.height):
             for j in range(self.map.width):
@@ -285,14 +276,19 @@ class Game:
 
         time = 2000
         cont = 0
-        # self.tom_ai.algoritmo(self.map, t_init, j_init, (-1, -1), self.tom_ai)
-        # self.jerry_ai.algoritmo(self.map, j_init, j_end, t_init, self.jerry_ai)
         # Now actually run the game
         # --------------------------
 
         while not self.game_over:
             current_frame = pygame.time.get_ticks()
             self.window.fill((0, 0, 0))
+
+            if self.tom_ai.get_pos() == self.jerry_ai.get_pos() or \
+                    self.tom_ai.get_pos() == self.map.j_end:
+                self.game_over = True
+            elif self.jerry_ai.get_pos() == self.map.j_end:
+                self.jerry_wins = True
+                self.game_over = True
 
             self.map.render(self.window)
             self.tom_ai.render(self.window, self.map)
@@ -308,15 +304,28 @@ class Game:
             if time <= 0 and cont == 1:
                 t_pos = (self.tom_ai.x, self.tom_ai.y)
                 j_pos = (self.jerry_ai.x, self.jerry_ai.y)
-                self.jerry_ai.y, self.jerry_ai.x = self.jerry_ai.algoritmo(self.map, j_pos, j_end, t_pos, self.jerry_ai)[1]
+                self.jerry_ai.y, self.jerry_ai.x = \
+                    self.jerry_ai.algoritmo(self.map, j_pos, j_end, t_pos, self.jerry_ai)[1]
                 time = 2000
                 cont = 0
 
             time -= 1
 
-            
             event_handler()
             pygame.display.update()
+
+        if self.jerry_wins:
+            print("GANASTE!")
+            mensaje = my_font.render("GANASTE!", False, (0, 0, 0))
+        else:
+            print("PERDISTE!")
+            mensaje = my_font.render("PERDISTE!", False, (0, 0, 0))
+
+        self.window.blit(mensaje, (self.window.get_width() // 2, self.window.get_width() // 2))
+        pygame.display.update()
+        pygame.time.delay(5 * 1000)
+        pygame.quit()
+        exit()
         # --------------------------
 
 
