@@ -56,6 +56,7 @@ class Entity:
     def get_pos(self):
         return tuple((self.x, self.y))
 
+    """Función para determinar si la dirección a la que la entidad se quiere desplazar es válida"""
     @staticmethod
     def valid(x: int, y: int, lista_cerrada, m):
         return \
@@ -66,6 +67,7 @@ class Entity:
             (m.vals[x][y] != 4 and m.vals[x][y] != 5 and m.vals[x][y] != 6 and m.vals[x][y] != 7) and \
             ((x, y) not in lista_cerrada)
 
+    """Algoritmo principal en el que se desarrolla la búsqueda de caminos."""
     def A_estrella(self, m, init, destino, objetivo_peligro, entity):
         lista_cerrada = [init]
         padres = [[0 for _ in range(m.width)] for _ in range(m.height)]
@@ -106,6 +108,7 @@ class Entity:
 
         return padres
 
+    """Punto de entrada de la IA de cada entidad."""
     def algoritmo(self, m, init, destino, objetivo_peligro, entity):
         _inicio = (init[1], init[0])
         _destino = (destino[1], destino[0])
@@ -133,6 +136,7 @@ class Tom(Entity):
     def __init__(self, x: int, y: int, w, m):
         super().__init__(x, y, 'resources/tom.png', w, m)
 
+    """Heurística única para Tom. No le importa las trampas en el entorno, con tal de ir por la ruta más corta."""
     @staticmethod
     def heuristica(m, pos, jerry_end, objetivo_peligro):
         heuristica = abs(pos[0] - jerry_end[0]) + abs(pos[1] - jerry_end[1])
@@ -145,6 +149,7 @@ class Jerry(Entity):
     def __init__(self, x: int, y: int, w, m):
         super().__init__(x, y, 'resources/jerry.png', w, m)
 
+    """Heurística única para Jerry. Con tal de llegar lo más rápido posible busca la ruta con menos trampas en ella."""
     @staticmethod
     def heuristica(m, pos, jerry_end, objetivo_peligro):
         heuristica = abs(pos[0] - jerry_end[0]) + abs(pos[1] - jerry_end[1])
@@ -180,6 +185,7 @@ class Map:
             i += 1
         assert ti_count == 1 and ji_count == 1 and je_count == 1
 
+    """Renderizar el mapa."""
     def render(self, window):
         scr_w = window.get_width() // self.width
         scr_h = window.get_height() // self.height
@@ -210,6 +216,7 @@ class Game:
     def __init__(self, wnd_resolution: tuple):
         pygame.init()
 
+        """MAPA 1"""
         map1 = [[3,  0, 7, 0, 6, 6, 0,  9,  0, 2],
                 [8,  0, 7, 0, 0, 0, 0,  0,  0, 0],
                 [0, 10, 7, 0, 5, 5, 5, 10, 10, 9],
@@ -218,7 +225,8 @@ class Game:
                 [0,  0, 4, 5, 5, 5, 4,  0,  0, 0],
                 [0,  0, 0, 0, 0, 0, 0,  0,  9, 1]]
 
-        map2 = [[3, 0, 8, 6, 6, 6, 4, 9, 0, 2],
+        """MAPA 2"""
+        map2 = [[3, 0, 8, 6, 6, 6, 4, 9,  0, 2],
                 [0, 10, 0, 9, 0, 0, 0, 8, 0, 0],
                 [4, 0, 7, 0, 5, 0, 7, 0,  0, 9],
                 [5, 0, 7, 0, 5, 0, 7, 0, 10, 4],
@@ -226,18 +234,19 @@ class Game:
                 [5, 0, 7, 0, 0, 0, 7, 0,  9, 0],
                 [4, 0, 7, 7, 7, 7, 7, 0,  0, 1]]
 
-        map3 = [[3, 0, 4, 0, 4, 4, 0, 8, 0, 2],
-                [8, 0, 4, 0, 0, 0, 0, 0, 0, 0],
-                [0, 8, 4, 0, 4, 4, 4, 8, 8, 8],
-                [8, 0, 4, 0, 0, 0, 0, 0, 0, 0],
-                [0, 8, 4, 4, 4, 4, 4, 0, 0, 4],
-                [0, 0, 4, 4, 4, 4, 4, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0, 8, 1]]
+        """MAPA 3"""
+        map3 = [[ 3,  0,  4, 6, 6, 6,  4, 0, 0, 2],
+                [ 0,  9, 10, 0, 0, 0, 10, 0, 0, 0],
+                [10,  0,  7, 0, 5, 0,  7, 0, 4, 7],
+                [ 0,  8,  0, 0, 5, 0,  0, 0, 7, 5],
+                [ 0,  0,  7, 0, 5, 9,  7, 0, 0, 5],
+                [ 0,  0,  0, 0, 0, 0, 10, 0, 7, 5],
+                [ 4,  5,  4, 0, 1, 0,  9, 0, 4, 7]]
 
         self.window = pygame.display.set_mode(wnd_resolution)
         self.game_over = False
         self.jerry_wins = False
-        self.map = Map(map2)
+        self.map = Map(map3)
 
         selected = self.map.vals
         for i in range(len(selected)):
@@ -249,6 +258,7 @@ class Game:
                 if selected[i][j] == 2:
                     self.ratonera = (j, i)
 
+    """Punto de entrada del juego"""
     def run(self):
         def event_handler():
             for event in pygame.event.get():
@@ -279,10 +289,12 @@ class Game:
         # Now actually run the game
         # --------------------------
 
+        """Mientras el juego no haya acabado..."""
         while not self.game_over:
             current_frame = pygame.time.get_ticks()
             self.window.fill((0, 0, 0))
 
+            """Si Tom llega a la casita de Jerry, o a Jerry, perdiste. En cambio, si Jerry llega primero, ganaste."""
             if self.tom_ai.get_pos() == self.jerry_ai.get_pos() or \
                     self.tom_ai.get_pos() == self.map.j_end:
                 self.game_over = True
@@ -314,6 +326,7 @@ class Game:
             event_handler()
             pygame.display.update()
 
+        """Render previo al cierre del programa..."""
         if self.jerry_wins:
             print("GANASTE!")
             mensaje = my_font.render("GANASTE!", False, (0, 0, 0))
@@ -329,10 +342,12 @@ class Game:
         # --------------------------
 
 
+# Punto de entrada del programa en sí
 def main():
     tnj = Game((800, 600))
     tnj.run()
 
 
+# Inicializador
 if __name__ == '__main__':
     main()
